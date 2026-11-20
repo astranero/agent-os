@@ -1,2 +1,2 @@
 # Only needed so the JSON Schema conformance test runs instead of skipping.
-jsonschema>=4.18
+jsonschema>=4.26.0
