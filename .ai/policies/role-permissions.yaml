@@ -1,0 +1,263 @@
+# Role capability manifest.
+#
+# Structure: role-capability.schema.json
+# Validation: python3 tools/validate_constitution.py
+#
+# This file is the policy. It is not yet enforcement: a later card maps each
+# capability to GitHub App permissions, Actions permissions, repository rules,
+# and branch protection. Capabilities listed under NEVER_GRANTABLE in the
+# validator cannot be granted to any role by editing this file.
+
+version: 0.2.0
+status: accepted
+
+capabilities:
+  # Repository and board
+  read_repository: Read files, history, and branches.
+  read_issues: Read issues, cards, and project board state.
+  write_issues: Create and edit issues and card descriptions.
+  manage_backlog: Prioritize, label, and order cards on the project board.
+  claim_ready_card: Take ownership of one Ready card; the coordinator enforces one owner.
+  create_branch: Create a feature branch for an owned card.
+  push_feature_branch: Push commits to the role's own feature branch.
+  open_draft_pull_request: Open a draft pull request for an owned card.
+  update_own_pull_request: Edit the description and commits of the role's own pull request.
+  comment_on_pull_request: Add review comments to any pull request.
+  request_changes: Submit a request-changes review on a pull request it did not author.
+  approve_pull_request: Submit an approving review on a pull request it did not author.
+  block_pull_request: Set a failing required security status that blocks merge.
+  record_decision: Record a product or scope decision on a card.
+  accept_card: Record final acceptance of a completed card.
+
+  # Design artifacts
+  write_adr: Create or update architecture decision records.
+  write_contracts: Create or update OpenAPI contracts and data schemas.
+  write_threat_model: Create or update threat models.
+  write_acceptance_scenarios: Create or update Given/When/Then feature files.
+  write_implementation_cards: Decompose stories into Ready implementation cards.
+
+  # Execution
+  run_tests: Run unit, integration, and contract tests.
+  run_browser_tests: Run Playwright browser tests.
+  run_storybook: Build and serve Storybook and its interaction tests.
+  run_accessibility_checks: Run automated accessibility checks.
+  run_visual_regression: Run visual regression comparisons.
+  run_coverage: Produce coverage and mutation-testing reports.
+  run_contract_validator: Validate OpenAPI contracts and schemas.
+  run_migration_checks: Check database migrations in a sandbox.
+  run_static_analysis: Run linters and general static analysis.
+  run_dependency_scan: Run dependency vulnerability and licence scans.
+  run_codeql: Run CodeQL analysis.
+  run_semgrep: Run Semgrep rules.
+  run_secret_scan: Run secret scanning.
+  run_container_scan: Run container and infrastructure-as-code scanning.
+  run_dynamic_security_scan: Run dynamic API security tests against non-production targets.
+  publish_preview: Publish a preview deployment for a pull request.
+
+  # Restricted: change-control actions granted only by explicit design
+  change_acceptance_criteria: Edit acceptance criteria of a card after it leaves Ready.
+  change_architecture: Change boundaries, contracts, or dependencies without an ADR.
+  implement_feature_code: Write production feature code.
+  add_runtime_dependency: Add a new runtime dependency.
+
+  # Never grantable to any role (enforced in the validator)
+  merge_pull_request: Merge into a protected branch. Human-only.
+  approve_own_pull_request: Approve a pull request the role authored. Never allowed.
+  modify_branch_protection: Change branch protection or repository rules. Human-only.
+  disable_security_workflows: Disable, skip, or weaken a security workflow. Never allowed.
+  suppress_security_finding: Dismiss or suppress a finding. Human-only, with recorded authorization.
+  downgrade_critical_finding: Lower the severity of a critical finding. Never allowed.
+  commit_to_paid_service: Sign up for, buy, or add a paid product or service. Human-only, after open-source options are ruled out.
+
+roles:
+  project-manager:
+    profile: roles/project-manager.md
+    can:
+      - read_repository
+      - read_issues
+      - write_issues
+      - manage_backlog
+      - record_decision
+      - accept_card
+      - comment_on_pull_request
+    cannot:
+      - change_architecture
+      - implement_feature_code
+      - merge_pull_request
+      - approve_own_pull_request
+      - modify_branch_protection
+      - disable_security_workflows
+      - suppress_security_finding
+      - downgrade_critical_finding
+      - commit_to_paid_service
+    escalates_to: [human]
+
+  architect:
+    profile: roles/architect.md
+    can:
+      - read_repository
+      - read_issues
+      - write_issues
+      - write_adr
+      - write_contracts
+      - write_threat_model
+      - write_acceptance_scenarios
+      - write_implementation_cards
+      - add_runtime_dependency
+      - run_contract_validator
+      - create_branch
+      - push_feature_branch
+      - open_draft_pull_request
+      - update_own_pull_request
+      - comment_on_pull_request
+    cannot:
+      - implement_feature_code
+      - change_acceptance_criteria
+      - merge_pull_request
+      - approve_own_pull_request
+      - modify_branch_protection
+      - disable_security_workflows
+      - suppress_security_finding
+      - downgrade_critical_finding
+      - commit_to_paid_service
+    escalates_to: [project-manager, human]
+
+  backend-developer:
+    profile: roles/backend-developer.md
+    can:
+      - read_repository
+      - read_issues
+      - claim_ready_card
+      - create_branch
+      - push_feature_branch
+      - implement_feature_code
+      - run_tests
+      - run_contract_validator
+      - run_migration_checks
+      - run_static_analysis
+      - run_dependency_scan
+      - run_coverage
+      - open_draft_pull_request
+      - update_own_pull_request
+    cannot:
+      - change_acceptance_criteria
+      - change_architecture
+      - add_runtime_dependency
+      - merge_pull_request
+      - approve_own_pull_request
+      - modify_branch_protection
+      - disable_security_workflows
+      - suppress_security_finding
+      - downgrade_critical_finding
+      - commit_to_paid_service
+    escalates_to: [architect, security-reviewer, project-manager]
+
+  frontend-developer:
+    profile: roles/frontend-developer.md
+    can:
+      - read_repository
+      - read_issues
+      - claim_ready_card
+      - create_branch
+      - push_feature_branch
+      - implement_feature_code
+      - run_tests
+      - run_browser_tests
+      - run_storybook
+      - run_accessibility_checks
+      - run_visual_regression
+      - run_static_analysis
+      - publish_preview
+      - open_draft_pull_request
+      - update_own_pull_request
+    cannot:
+      - change_acceptance_criteria
+      - change_architecture
+      - add_runtime_dependency
+      - merge_pull_request
+      - approve_own_pull_request
+      - modify_branch_protection
+      - disable_security_workflows
+      - suppress_security_finding
+      - downgrade_critical_finding
+      - commit_to_paid_service
+    escalates_to: [architect, project-manager]
+
+  test-engineer:
+    profile: roles/test-engineer.md
+    can:
+      - read_repository
+      - read_issues
+      - write_acceptance_scenarios
+      - run_tests
+      - run_browser_tests
+      - run_coverage
+      - run_contract_validator
+      - create_branch
+      - push_feature_branch
+      - open_draft_pull_request
+      - update_own_pull_request
+      - comment_on_pull_request
+      - request_changes
+    cannot:
+      - implement_feature_code
+      - change_acceptance_criteria
+      - change_architecture
+      - merge_pull_request
+      - approve_own_pull_request
+      - modify_branch_protection
+      - disable_security_workflows
+      - suppress_security_finding
+      - downgrade_critical_finding
+      - commit_to_paid_service
+    escalates_to: [architect, reviewer]
+
+  reviewer:
+    profile: roles/reviewer.md
+    can:
+      - read_repository
+      - read_issues
+      - comment_on_pull_request
+      - request_changes
+      - approve_pull_request
+    cannot:
+      - implement_feature_code
+      - change_acceptance_criteria
+      - change_architecture
+      - push_feature_branch
+      - merge_pull_request
+      - approve_own_pull_request
+      - modify_branch_protection
+      - disable_security_workflows
+      - suppress_security_finding
+      - downgrade_critical_finding
+      - commit_to_paid_service
+    escalates_to: [architect, security-reviewer, project-manager]
+
+  security-reviewer:
+    profile: roles/security-reviewer.md
+    can:
+      - read_repository
+      - read_issues
+      - run_codeql
+      - run_semgrep
+      - run_secret_scan
+      - run_dependency_scan
+      - run_container_scan
+      - run_dynamic_security_scan
+      - run_static_analysis
+      - write_threat_model
+      - comment_on_pull_request
+      - request_changes
+      - block_pull_request
+    cannot:
+      - implement_feature_code
+      - approve_pull_request
+      - merge_pull_request
+      - approve_own_pull_request
+      - modify_branch_protection
+      - disable_security_workflows
+      - suppress_security_finding
+      - downgrade_critical_finding
+      - commit_to_paid_service
+    escalates_to: [human, project-manager]

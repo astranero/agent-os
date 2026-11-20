@@ -1,0 +1,12 @@
+# Free version updates for the workflow's actions and the Python tools.
+# Checked by tools/validate_repository_rules.py.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly

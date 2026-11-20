@@ -1,0 +1,6 @@
+# Changes to the control tree need the project manager's review.
+# The last matching line wins, so never add a line without an owner.
+# Checked by tools/validate_repository_rules.py.
+/.ai/ @astranero
+/tools/ @astranero
+/.github/ @astranero

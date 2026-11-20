@@ -1,0 +1,93 @@
+# Quality gates for every pull request and every push to main.
+#
+# Security notes:
+# - Read-only token: this workflow never writes to the repository.
+# - Pull-request text reaches shell commands only through environment
+#   variables, never through ${{ }} expressions inside `run`, so a crafted
+#   PR body cannot inject commands.
+# - Only GitHub's own open-source actions are used (reuse-first, no cost).
+# - Dependabot PRs cannot contain `Closes #N`, so they skip only the
+#   linked-card job (approved by the project manager, 2026-11-20). The
+#   check uses the PR author, which only Dependabot can be; every other
+#   check and the code-owner review still apply.
+
+name: Quality gates
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: quality-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-checks:
+    name: Tests, constitution, and template drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Constitution and role permissions
+        run: python tools/validate_constitution.py
+
+      - name: GitHub templates match .ai/templates
+        run: python tools/generate_github_templates.py --check
+
+      - name: Main-branch ruleset, CODEOWNERS, and Dependabot
+        run: python tools/validate_repository_rules.py
+
+  pull-request-gate:
+    name: Pull request and linked card
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Check pull request and linked card
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+        run: |
+          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          issue_number="$(python tools/check_pull_request.py linked-issue "$RUNNER_TEMP/pr-body.md")"
+          gh issue view "$issue_number" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/card.md"
+          python tools/check_pull_request.py check \
+            --pr-body "$RUNNER_TEMP/pr-body.md" \
+            --card "$RUNNER_TEMP/card.md" \
+            --draft "$PR_DRAFT"

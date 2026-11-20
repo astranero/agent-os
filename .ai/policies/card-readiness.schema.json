@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://magpie.local/agent-os/card-readiness.schema.json",
+  "title": "Implementation card model",
+  "description": "The parsed form of a Markdown implementation card, as printed by `tools/validate_card.py --json`. Readiness rules that depend on several fields (story form, Given/When/Then order, @failure scenario, traceability coverage, Review-stage results) are enforced by the validator.",
+  "type": "object",
+  "required": ["title", "sections", "user_story", "background", "scenarios", "traceability", "reuse"],
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "description": "Text of the '# ID — Title' heading.",
+      "type": ["string", "null"]
+    },
+    "sections": {
+      "type": "object",
+      "required": [
+        "User story",
+        "Scope",
+        "Non-goals",
+        "Acceptance criteria",
+        "Contract",
+        "Test plan",
+        "Security impact",
+        "Dependencies",
+        "Reuse and cost",
+        "Verification commands",
+        "Traceability"
+      ],
+      "additionalProperties": { "type": "string" }
+    },
+    "user_story": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["role", "capability", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "role": { "type": "string", "minLength": 1 },
+            "capability": { "type": "string", "minLength": 1 },
+            "value": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "background": {
+      "description": "Given steps from a Gherkin Background; they apply to every scenario.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "scenarios": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/scenario" }
+    },
+    "traceability": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/traceabilityRow" }
+    },
+    "reuse": {
+      "description": "Reuse-and-cost decision. Order of preference: existing, open-source, build, paid. A paid decision needs approved_by.",
+      "type": "object",
+      "required": ["decision", "alternatives_checked", "approved_by"],
+      "additionalProperties": false,
+      "properties": {
+        "decision": { "type": ["string", "null"] },
+        "alternatives_checked": { "type": ["string", "null"] },
+        "approved_by": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "definitions": {
+    "scenario": {
+      "type": "object",
+      "required": ["name", "tags", "given", "when", "then"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^@" }
+        },
+        "given": { "type": "array", "items": { "type": "string" } },
+        "when": { "type": "array", "items": { "type": "string" } },
+        "then": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "traceabilityRow": {
+      "type": "object",
+      "required": ["criterion", "test", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "criterion": {
+          "description": "Must equal a scenario name.",
+          "type": "string"
+        },
+        "test": {
+          "description": "Test location, for example 'invite-user.feature:12' or 'auth.test.ts:61'.",
+          "type": "string"
+        },
+        "result": { "enum": ["Pending", "Passed", "Failed"] }
+      }
+    }
+  }
+}
