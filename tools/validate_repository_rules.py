@@ -5,9 +5,9 @@ Checks, all offline:
 
 * `.ai/policies/main-branch-ruleset.json` (a GitHub repository ruleset)
   targets only `main`, has no bypass actors, blocks force pushes and
-  deletion, requires a code-owner review that cannot come from the author
-  of the last push, and requires exactly the job names in the
-  quality-gates workflow as status checks from GitHub Actions;
+  deletion, requires pull requests without requiring an independent approval,
+  and requires exactly the job names in the quality-gates workflow as status
+  checks from GitHub Actions;
 * `.github/CODEOWNERS` gives `.ai/`, `tools/`, and `.github/` a real owner
   and has no ownerless line;
 * `.github/dependabot.yml` updates GitHub Actions and pip dependencies.
@@ -43,11 +43,9 @@ GITHUB_ACTIONS_APP_ID = 15368
 REQUIRED_RULE_TYPES = ("deletion", "non_fast_forward", "pull_request", "required_status_checks")
 
 REQUIRED_REVIEW_SETTINGS = {
-    "require_code_owner_review": True,
+    "require_code_owner_review": False,
     "dismiss_stale_reviews_on_push": True,
-    # Someone other than the author of the most recent push must approve,
-    # so nobody can approve their own last change.
-    "require_last_push_approval": True,
+    "require_last_push_approval": False,
 }
 
 CODE_OWNED_PATHS = ("/.ai/", "/tools/", "/.github/")
@@ -100,8 +98,8 @@ def find_review_problems(pull_request_rule):
         return []
     parameters = pull_request_rule.get("parameters", {})
     problems = []
-    if parameters.get("required_approving_review_count", 0) < 1:
-        problems.append("ruleset: required_approving_review_count must be at least 1")
+    if parameters.get("required_approving_review_count") != 0:
+        problems.append("ruleset: required_approving_review_count must be 0 in single-maintainer mode")
     for setting, required_value in REQUIRED_REVIEW_SETTINGS.items():
         if parameters.get(setting) is not required_value:
             problems.append(f"ruleset: {setting} must be {str(required_value).lower()}")

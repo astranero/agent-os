@@ -9,8 +9,16 @@ source from which provider files are later generated.
 ## Status
 
 Phase 0 (constitution) and the role capability part of Phase 1 are
-`status: accepted`, approved by the project manager on 2026-11-20. Nothing
-here is enforced by GitHub yet.
+`status: accepted`, approved by the project manager on 2026-11-20. The
+public system of record is [astranero/agent-os](https://github.com/astranero/agent-os),
+with a public [Agent OS Kanban project](https://github.com/users/astranero/projects/2).
+The `Protect main` ruleset is active and the initial quality-gated push passed.
+The repository also contains a controlled direct-push rejection as protection
+evidence. The normal pull-request path is verified by the live validation PR.
+This is single-maintainer mode: pull requests and all quality checks remain
+required, but GitHub does not require an independent approval because the
+project manager and agent currently use the same account. The project manager
+should still review every agent PR before merging it.
 
 The Ready-card schema and acceptance-criteria validation (AGENT-OS-02) and
 the reuse-first, paid-last rule (AGENT-OS-02A, principles v0.2.0) are
@@ -71,20 +79,19 @@ uses a read-only token and only `actions/checkout` and `actions/setup-python`.
 
 `.ai/policies/main-branch-ruleset.json` is a GitHub repository ruleset kept
 in version control. It blocks force pushes and deleting `main`, requires a
-pull request approved by a code owner (`.github/CODEOWNERS`), dismisses
-approvals when new commits arrive, requires someone other than the author
-of the last push to approve, and requires both quality-gate jobs to pass
-from GitHub Actions on an up-to-date branch. Nobody can bypass it, including
-admins. `validate_repository_rules.py` fails if a workflow job is renamed
-without updating the ruleset.
+pull request, dismisses stale reviews when new commits arrive, and requires
+both quality-gate jobs to pass from GitHub Actions on an up-to-date branch.
+Single-maintainer mode intentionally requires no independent approval. Nobody
+can bypass the ruleset, including admins. `validate_repository_rules.py` fails
+if a workflow job is renamed without updating the ruleset.
 
 Dependabot (`.github/dependabot.yml`) opens weekly update PRs for the
 actions and the pip requirements. Those PRs cannot link a card, so they skip
-only the "Pull request and linked card" job; they still need the other
-checks and a code-owner review.
+only the "Pull request and linked card" job; they still need the other check.
 
-Apply the ruleset once after the first push (needs `gh` logged in as a
-repository admin; replace `astranero/agent-os` with the real repository):
+The ruleset is already applied to `astranero/agent-os`. To reproduce or update
+it, use `gh` logged in as a repository administrator and keep the checked-in
+JSON as the source of truth:
 
 ```
 gh api --method POST repos/astranero/agent-os/rulesets \
@@ -97,16 +104,27 @@ ruleset with `gh api --method PUT repos/OWNER/REPO/rulesets/RULESET_ID
 repositories; a private repository needs a paid plan, which needs the
 project manager's approval.
 
-Because the project manager is the only code owner and GitHub never lets a
-PR author approve their own PR, PRs must be opened by agent accounts (or
-another person) for the project manager to approve them.
+The repository deliberately keeps pull requests and required quality checks,
+but does not require an independent approval in single-maintainer mode. The
+project manager reviews the agent's PR and merges it from the same account.
+Adding a second agent identity later would allow independent code-owner review
+without changing the rest of the ruleset.
 
 ## Moving to GitHub
 
-`projects/agent-os` lives inside the Magpie vault, which is already a git
-repository, so it is not a separate repo yet. To publish it, copy the folder
-into a new repository (for example `agent-os`), commit, and push; the
-workflow starts running on the first pull request.
+`projects/agent-os` remains inside the Magpie vault, while
+`astranero/agent-os` is the public GitHub copy. `HANDOFF.md` is a vault-only
+operator handoff and must not be published. The public copy is made by
+starting from a fresh repository and excluding vault-only/generated files:
+
+```
+rsync -a --exclude='__pycache__/' --exclude='HANDOFF.md' \
+  --exclude='.DS_Store' projects/agent-os/ /path/to/fresh/agent-os/
+```
+
+Commit and push the copy from its fresh repository. The workflow starts on the
+push and on every later pull request. Do not copy the vault's `.git`, parent
+vault files, or other files outside `projects/agent-os/`.
 
 A card is Ready when every section is filled in (no `TBD`, `TODO`, or
 `<placeholder>`), the user story reads "As a …, I want …, so that …", every
@@ -123,7 +141,6 @@ disabling, finding suppression, or critical-finding downgrades.
 
 ## Next cards
 
-The remaining first-implementation cards (Ready-card schema, GitHub board,
-templates, branch protection, CI gates, Gherkin traceability, CodeQL,
-Semgrep, Storybook, review packet, coordinator, vertical slice) are tracked
-in the vault board at `.ai/KANBAN.md`.
+The remaining implementation cards (action pinning, review-packet generator,
+coordinator, security analysis, Storybook preview, and the first vertical
+slice) are tracked in the vault board at `.ai/KANBAN.md`.
