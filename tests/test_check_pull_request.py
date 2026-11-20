@@ -15,6 +15,7 @@ import check_pull_request as gate  # noqa: E402
 
 CHECK_SCRIPT = PROJECT_ROOT / "tools" / "check_pull_request.py"
 WORKFLOW_PATH = PROJECT_ROOT / ".github" / "workflows" / "quality-gates.yml"
+WORKFLOW_TEXT = WORKFLOW_PATH.read_text(encoding="utf-8")
 PILOT_CARD_PATH = PROJECT_ROOT / ".ai" / "templates" / "examples" / "pilot-create-account.md"
 PULL_REQUEST_TEMPLATE_PATH = PROJECT_ROOT / ".ai" / "templates" / "pull-request.md"
 
@@ -233,6 +234,13 @@ class WorkflowPolicyTests(unittest.TestCase):
                 with self.subTest(uses=step["uses"]):
                     action_name = step["uses"].split("@", 1)[0]
                     self.assertIn(action_name, ALLOWED_ACTIONS)
+
+    def test_workflow_actions_are_pinned_to_commit_shas(self):
+        action_lines = [line.strip() for line in WORKFLOW_TEXT.splitlines() if "uses:" in line]
+        self.assertTrue(action_lines)
+        for line in action_lines:
+            with self.subTest(line=line):
+                self.assertRegex(line, r"uses: actions/[A-Za-z0-9._-]+@[0-9a-f]{40} # v[0-9]+")
 
     def test_event_text_never_appears_directly_in_shell_commands(self):
         for script in self.run_scripts:
