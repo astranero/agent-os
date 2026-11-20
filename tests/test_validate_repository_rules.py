@@ -32,10 +32,10 @@ VALID_RULESET = {
         {
             "type": "pull_request",
             "parameters": {
-                "required_approving_review_count": 1,
-                "require_code_owner_review": True,
+                "required_approving_review_count": 0,
+                "require_code_owner_review": False,
                 "dismiss_stale_reviews_on_push": True,
-                "require_last_push_approval": True,
+                "require_last_push_approval": False,
                 "required_review_thread_resolution": True,
             },
         },
@@ -109,18 +109,18 @@ class RulesetTests(unittest.TestCase):
                 )
                 self.assertIn(rule_type, "\n".join(self.problems(ruleset)))
 
-    def test_weakened_review_rule_fails(self):
-        weakenings = {
-            "required_approving_review_count": 0,
-            "require_code_owner_review": False,
+    def test_independent_review_rule_fails_in_single_maintainer_mode(self):
+        incompatible_settings = {
+            "required_approving_review_count": 1,
+            "require_code_owner_review": True,
             "dismiss_stale_reviews_on_push": False,
-            "require_last_push_approval": False,
+            "require_last_push_approval": True,
         }
-        for parameter, weak_value in weakenings.items():
+        for parameter, incompatible_value in incompatible_settings.items():
             with self.subTest(parameter=parameter):
                 ruleset = ruleset_with(
                     lambda r: rule_of_type(r, "pull_request")["parameters"].update(
-                        {parameter: weak_value}
+                        {parameter: incompatible_value}
                     )
                 )
                 self.assertIn(parameter, "\n".join(self.problems(ruleset)))

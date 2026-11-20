@@ -79,12 +79,11 @@ uses a read-only token and only `actions/checkout` and `actions/setup-python`.
 
 `.ai/policies/main-branch-ruleset.json` is a GitHub repository ruleset kept
 in version control. It blocks force pushes and deleting `main`, requires a
-pull request approved by a code owner (`.github/CODEOWNERS`), dismisses
-approvals when new commits arrive, requires someone other than the author
-of the last push to approve, and requires both quality-gate jobs to pass
-from GitHub Actions on an up-to-date branch. Nobody can bypass it, including
-admins. `validate_repository_rules.py` fails if a workflow job is renamed
-without updating the ruleset.
+pull request, dismisses stale reviews when new commits arrive, and requires
+both quality-gate jobs to pass from GitHub Actions on an up-to-date branch.
+Single-maintainer mode intentionally requires no independent approval. Nobody
+can bypass the ruleset, including admins. `validate_repository_rules.py` fails
+if a workflow job is renamed without updating the ruleset.
 
 Dependabot (`.github/dependabot.yml`) opens weekly update PRs for the
 actions and the pip requirements. Those PRs cannot link a card, so they skip
