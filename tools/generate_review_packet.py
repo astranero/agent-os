@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import check_pull_request
+import github_evidence
 import validate_card
 
 
@@ -62,10 +63,27 @@ def build_packet(pr_body, card_text):
     return "\n".join(lines)
 
 
+def build_live_packet(review_inputs):
+    """Build a packet from collected inputs and preserve live check values."""
+    packet = build_packet(review_inputs["pr_body"], review_inputs["card"])
+    lines = packet.rstrip("\n").splitlines()
+    lines.extend(("", "## Live checks", "", "| Check | Status | Conclusion |", "|---|---|---|"))
+    for check in review_inputs["check_runs"]:
+        lines.append(
+            f"| {check.get('name')} | {check.get('status')} | "
+            f"{check.get('conclusion')} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def build_argument_parser():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pr-body", type=Path, required=True)
-    parser.add_argument("--card", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--pr-body", type=Path)
+    source.add_argument("--repo")
+    parser.add_argument("--card", type=Path)
+    parser.add_argument("--pr", type=int)
     parser.add_argument("--output", type=Path, required=True)
     return parser
 
@@ -73,11 +91,20 @@ def build_argument_parser():
 def main(arguments):
     options = build_argument_parser().parse_args(arguments)
     try:
-        packet = build_packet(
-            options.pr_body.read_text(encoding="utf-8"),
-            options.card.read_text(encoding="utf-8"),
-        )
-    except (OSError, ValueError) as error:
+        if options.repo:
+            if options.pr is None or options.card is not None:
+                raise ValueError("live mode requires --repo and --pr, without --card")
+            packet = build_live_packet(
+                github_evidence.collect_review_inputs(options.repo, options.pr)
+            )
+        else:
+            if options.card is None or options.pr is not None:
+                raise ValueError("offline mode requires --pr-body and --card")
+            packet = build_packet(
+                options.pr_body.read_text(encoding="utf-8"),
+                options.card.read_text(encoding="utf-8"),
+            )
+    except (OSError, ValueError, github_evidence.GitHubEvidenceError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
