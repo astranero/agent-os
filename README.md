@@ -14,9 +14,11 @@ public system of record is [astranero/agent-os](https://github.com/astranero/age
 with a public [Agent OS Kanban project](https://github.com/users/astranero/projects/2).
 The `Protect main` ruleset is active and the initial quality-gated push passed.
 The repository also contains a controlled direct-push rejection as protection
-evidence. The normal pull-request path is verified by the live validation PR;
-it cannot be merged by this account because the only code owner cannot approve
-their own pull request.
+evidence. The normal pull-request path is verified by the live validation PR.
+This is single-maintainer mode: pull requests and all quality checks remain
+required, but GitHub does not require an independent approval because the
+project manager and agent currently use the same account. The project manager
+should still review every agent PR before merging it.
 
 The Ready-card schema and acceptance-criteria validation (AGENT-OS-02) and
 the reuse-first, paid-last rule (AGENT-OS-02A, principles v0.2.0) are
@@ -86,8 +88,7 @@ without updating the ruleset.
 
 Dependabot (`.github/dependabot.yml`) opens weekly update PRs for the
 actions and the pip requirements. Those PRs cannot link a card, so they skip
-only the "Pull request and linked card" job; they still need the other
-checks and a code-owner review.
+only the "Pull request and linked card" job; they still need the other check.
 
 The ruleset is already applied to `astranero/agent-os`. To reproduce or update
 it, use `gh` logged in as a repository administrator and keep the checked-in
@@ -104,12 +105,11 @@ ruleset with `gh api --method PUT repos/OWNER/REPO/rulesets/RULESET_ID
 repositories; a private repository needs a paid plan, which needs the
 project manager's approval.
 
-Because the project manager is the only code owner and GitHub never lets a PR
-author approve their own PR, PRs must be opened by an agent account or another
-person for the project manager to approve them. This repository deliberately
-does not add a bypass actor. The cheapest unresolved operational fix is a
-separate free agent account; creating that account is a project-manager
-decision.
+The repository deliberately keeps pull requests and required quality checks,
+but does not require an independent approval in single-maintainer mode. The
+project manager reviews the agent's PR and merges it from the same account.
+Adding a second agent identity later would allow independent code-owner review
+without changing the rest of the ruleset.
 
 ## Moving to GitHub
 
