@@ -145,6 +145,23 @@ class ReviewPacketTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "traceability row 'Packet is generated': result is Pending"):
             packet.build_packet(PR_BODY, pending_card)
 
+    def test_packet_includes_verified_report(self):
+        verified_card = CARD.replace("| Packet is generated | test | Passed |", "| Packet is generated | Example.test_packet | Passed |")
+        verified_card = verified_card.replace("| Pending evidence is rejected | test | Passed |", "| Pending evidence is rejected | Example.test_pending | Passed |")
+        report = """\
+<testsuite>
+  <testcase classname="Example" name="test_packet" />
+  <testcase classname="Example" name="test_pending" />
+</testsuite>
+"""
+        result = packet.build_packet(PR_BODY, verified_card, report)
+        self.assertIn("## Verified test report", result)
+        self.assertIn("| Packet is generated | Example.test_packet | Example.test_packet | passed |", result)
+
+    def test_unverified_report_blocks_packet(self):
+        with self.assertRaisesRegex(ValueError, "no test case"):
+            packet.build_packet(PR_BODY, CARD, "<testsuite />")
+
 
 if __name__ == "__main__":
     unittest.main()

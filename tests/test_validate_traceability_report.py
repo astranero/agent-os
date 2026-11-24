@@ -48,6 +48,17 @@ class TraceabilityReportTests(unittest.TestCase):
         with self.assertRaisesRegex(validator.ReportError, "unknown result state"):
             validator.verify_traceability(CARD, report)
 
+    def test_ambiguous_test_names_fail(self):
+        report = """\
+<testsuite>
+  <testcase classname="First" name="same" />
+  <testcase classname="Second" name="same" />
+</testsuite>
+"""
+        card = CARD.replace("Example.test_first", "same")
+        with self.assertRaisesRegex(validator.ReportError, "ambiguous"):
+            validator.verified_traceability_rows(card, report)
+
 
 if __name__ == "__main__":
     unittest.main()

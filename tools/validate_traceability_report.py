@@ -78,6 +78,25 @@ def verify_traceability(card_text, report_text):
     return verification_errors
 
 
+def verified_traceability_rows(card_text, report_text):
+    """Return the passed card rows with the exact report names that prove them."""
+    errors = verify_traceability(card_text, report_text)
+    if errors:
+        raise ReportError("\n".join(errors))
+    sections = validate_card.split_sections(card_text)[1]
+    rows, _ = validate_card.parse_traceability(sections["Traceability"])
+    cases = read_test_cases(report_text)
+    return [
+        {
+            "criterion": row["criterion"],
+            "test": row["test"].strip().strip("`"),
+            "qualified_name": cases[row["test"].strip().strip("`")][0][0],
+            "result": cases[row["test"].strip().strip("`")][0][1],
+        }
+        for row in rows
+    ]
+
+
 def build_argument_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--card", type=Path, required=True)

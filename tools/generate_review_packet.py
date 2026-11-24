@@ -8,6 +8,7 @@ from pathlib import Path
 import check_pull_request
 import github_evidence
 import validate_card
+import validate_traceability_report
 
 
 PACKET_SECTIONS = (
@@ -32,7 +33,27 @@ def card_title(card_text):
     raise ValueError("card: missing level-one title")
 
 
-def build_packet(pr_body, card_text):
+def _append_verified_report(lines, card_text, report_text):
+    rows = validate_traceability_report.verified_traceability_rows(
+        card_text, report_text
+    )
+    lines.extend(
+        (
+            "",
+            "## Verified test report",
+            "",
+            "| Acceptance criterion | Test | Qualified name | Result |",
+            "|---|---|---|---|",
+        )
+    )
+    for row in rows:
+        lines.append(
+            f"| {row['criterion']} | {row['test']} | "
+            f"{row['qualified_name']} | {row['result']} |"
+        )
+
+
+def build_packet(pr_body, card_text, report_text=None):
     """Validate inputs and return a stable review packet string."""
     errors = check_pull_request.check_pull_request(pr_body, card_text, draft=False)
     if errors:
@@ -59,13 +80,16 @@ def build_packet(pr_body, card_text):
     for section_name in PACKET_SECTIONS:
         lines.extend(("", f"## {section_name}", "", pr_sections[section_name].strip()))
 
+    if report_text is not None:
+        _append_verified_report(lines, card_text, report_text)
+
     lines.append("")
     return "\n".join(lines)
 
 
-def build_live_packet(review_inputs):
+def build_live_packet(review_inputs, report_text=None):
     """Build a packet from collected inputs and preserve live check values."""
-    packet = build_packet(review_inputs["pr_body"], review_inputs["card"])
+    packet = build_packet(review_inputs["pr_body"], review_inputs["card"], report_text)
     lines = packet.rstrip("\n").splitlines()
     lines.extend(("", "## Live checks", "", "| Check | Status | Conclusion |", "|---|---|---|"))
     for check in review_inputs["check_runs"]:
@@ -84,6 +108,7 @@ def build_argument_parser():
     source.add_argument("--repo")
     parser.add_argument("--card", type=Path)
     parser.add_argument("--pr", type=int)
+    parser.add_argument("--junit-xml", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     return parser
 
@@ -95,7 +120,10 @@ def main(arguments):
             if options.pr is None or options.card is not None:
                 raise ValueError("live mode requires --repo and --pr, without --card")
             packet = build_live_packet(
-                github_evidence.collect_review_inputs(options.repo, options.pr)
+                github_evidence.collect_review_inputs(options.repo, options.pr),
+                options.junit_xml.read_text(encoding="utf-8")
+                if options.junit_xml
+                else None,
             )
         else:
             if options.card is None or options.pr is not None:
@@ -103,6 +131,9 @@ def main(arguments):
             packet = build_packet(
                 options.pr_body.read_text(encoding="utf-8"),
                 options.card.read_text(encoding="utf-8"),
+                options.junit_xml.read_text(encoding="utf-8")
+                if options.junit_xml
+                else None,
             )
     except (OSError, ValueError, github_evidence.GitHubEvidenceError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
