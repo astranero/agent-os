@@ -1,0 +1,6 @@
+{
+  "kind": "ui",
+  "preview_url": "http://localhost:6006/?path=/story/account-form",
+  "states": ["default", "loading", "validation-error", "network-error"],
+  "accessibility_notes": "Keyboard order, focus visibility, labels, and error announcements reviewed."
+}
