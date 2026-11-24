@@ -25,6 +25,15 @@ the reuse-first, paid-last rule (AGENT-OS-02A, principles v0.2.0) are
 accepted. Every card records whether it reuses existing code, uses open
 source, builds, or pays; paid options need a named human approver.
 
+## Parallel workstreams
+
+Independent cards may be implemented and reviewed concurrently. Each active
+card owns explicit files or interfaces and has its dependencies recorded.
+Cards with overlapping ownership or dependent contracts are ordered and
+rebased before merge; unrelated cards do not wait for one another. Every pull
+request remains independently reviewable and must pass the same tests,
+evidence, Quality gates, and maintainer review before it is merged.
+
 ## Layout
 
 ```
@@ -141,6 +150,7 @@ disabling, finding suppression, or critical-finding downgrades.
 
 ## Next cards
 
-The remaining implementation cards (action pinning, review-packet generator,
-coordinator, security analysis, Storybook preview, and the first vertical
-slice) are tracked in the vault board at `.ai/KANBAN.md`.
+The remaining implementation cards (parallel-workstream documentation,
+security analysis, Storybook preview, coordinator, agent factory, and the first
+vertical slice) are tracked in the vault board at `.ai/KANBAN.md`. The board
+is vault-only; this README documents the public operating rule.
