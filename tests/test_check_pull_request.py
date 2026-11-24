@@ -20,7 +20,14 @@ PILOT_CARD_PATH = PROJECT_ROOT / ".ai" / "templates" / "examples" / "pilot-creat
 PULL_REQUEST_TEMPLATE_PATH = PROJECT_ROOT / ".ai" / "templates" / "pull-request.md"
 
 # Reuse-first rule: only GitHub's own open-source actions, no third parties.
-ALLOWED_ACTIONS = ("actions/checkout", "actions/setup-python")
+ALLOWED_ACTIONS = (
+    "actions/checkout",
+    "actions/setup-python",
+    "github/codeql-action/init",
+    "github/codeql-action/autobuild",
+    "github/codeql-action/analyze",
+    "actions/dependency-review-action",
+)
 
 FILLED_PULL_REQUEST = """\
 ## Card
@@ -224,9 +231,20 @@ class WorkflowPolicyTests(unittest.TestCase):
     def test_workflow_grants_only_read_permissions(self):
         permissions = self.workflow["permissions"]
         self.assertEqual(set(permissions.values()), {"read"})
-        for job in self.workflow["jobs"].values():
-            with self.subTest(job=job.get("name")):
-                self.assertEqual(set(job.get("permissions", {"x": "read"}).values()), {"read"})
+        for job_key, job in self.workflow["jobs"].items():
+            with self.subTest(job=job.get("name", job_key)):
+                job_permissions = job.get("permissions", {"x": "read"})
+                if job_key == "codeql":
+                    self.assertEqual(job_permissions, {"security-events": "write"})
+                else:
+                    self.assertEqual(set(job_permissions.values()), {"read"})
+
+    def test_security_jobs_are_present_and_codeql_can_upload_results(self):
+        self.assertEqual(self.workflow["jobs"]["codeql"]["name"], "CodeQL")
+        self.assertEqual(
+            self.workflow["jobs"]["dependency-review"]["name"],
+            "Dependency review",
+        )
 
     def test_workflow_uses_only_allowed_actions(self):
         for step in self.steps:
@@ -240,7 +258,10 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertTrue(action_lines)
         for line in action_lines:
             with self.subTest(line=line):
-                self.assertRegex(line, r"uses: actions/[A-Za-z0-9._-]+@[0-9a-f]{40} # v[0-9]+")
+                self.assertRegex(
+                    line,
+                    r"uses: [A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?@[0-9a-f]{40} # v[0-9]+",
+                )
 
     def test_event_text_never_appears_directly_in_shell_commands(self):
         for script in self.run_scripts:
