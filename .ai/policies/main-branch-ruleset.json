@@ -28,7 +28,9 @@
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
           {"context": "Tests, constitution, and template drift", "integration_id": 15368},
-          {"context": "Pull request and linked card", "integration_id": 15368}
+          {"context": "Pull request and linked card", "integration_id": 15368},
+          {"context": "Dependency review", "integration_id": 15368},
+          {"context": "CodeQL", "integration_id": 15368}
         ]
       }
     }
